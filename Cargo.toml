@@ -1,0 +1,8 @@
+[package]
+name = "currency-format-bridge"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "cfbridge"
+path = "src/main.rs"

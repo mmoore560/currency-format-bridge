@@ -1,0 +1,77 @@
+# currency-format-bridge
+
+Ledgers and accounting systems want amounts as exact integers in a
+currency's minor unit (cents, pence, fils) because floating point cannot
+represent money reliably and even fixed-decimal arithmetic gets fiddly once
+you cross currencies with different numbers of decimal places (USD has 2,
+JPY has 0, BHD has 3). People, on the other hand, want to type and read
+`$1,234.56`, not `USD 123456`.
+
+`cfbridge` converts between those two representations, one amount per line:
+
+- **display format**: `$1,234.56`, `-¥500`, `1234.56 CHF`
+- **ledger format**: `USD 123456`, `JPY -500`, `CHF 123456`
+
+## Usage
+
+```
+cfbridge --to-ledger amounts.txt
+cfbridge --to-display ledger.txt
+cfbridge --to-ledger < amounts.txt
+```
+
+With `amounts.txt` containing:
+
+```
+$1,234.56
+-¥500
+12.34 EUR
+```
+
+`cfbridge --to-ledger amounts.txt` prints:
+
+```
+USD 123456
+JPY -500
+EUR 1234
+```
+
+## Error messages
+
+Every parse failure reports the exact line and column of the problem, with
+the offending line printed and a caret under the character:
+
+```
+$ echo '$12.5' | cfbridge --to-ledger
+error: USD amounts use 2 fractional digit(s), but this amount has 1
+  |
+1 | $12.5
+  |     ^
+  at line 1, column 5
+```
+
+This matters once you are converting a file with hundreds of lines pulled
+from somewhere else (an export, a pasted email, a spreadsheet) — "line 214
+is wrong" is not useful, "line 214, column 9, the fractional part has the
+wrong number of digits for BHD" is.
+
+## Format details
+
+- Display format accepts an optional leading `-`, then either a currency
+  symbol prefix (`$`, `€`, `£`, `¥`) or a trailing ISO 4217 code after the
+  number (`12.34 EUR`), never both.
+- Thousands separators (`,`) are checked for correct grouping: the first
+  group may have 1–3 digits, every group after it must have exactly 3.
+- The fractional part, when present, must have exactly as many digits as
+  the currency's minor unit count. Omitting it is only allowed when that
+  is equivalent to writing zeros (`$12` means `$12.00`).
+- Ledger format is `<CODE> <integer>`, where the integer is the exact
+  number of minor units and carries the sign.
+
+Only a small starter set of currencies is built in (USD, EUR, GBP, JPY,
+CHF, BHD) — see `src/amount.rs`.
+
+## Status
+
+First pass. No test suite yet, and the currency table is intentionally
+short. See the roadmap for what's next.
