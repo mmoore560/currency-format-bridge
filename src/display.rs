@@ -265,3 +265,171 @@ fn group_thousands(digits: &str) -> String {
     }
     String::from_utf8(out).unwrap()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::amount::{by_code, Amount};
+
+    fn usd(minor_units: i64) -> Amount {
+        Amount { currency: by_code("USD").unwrap(), minor_units }
+    }
+
+    fn bhd(minor_units: i64) -> Amount {
+        Amount { currency: by_code("BHD").unwrap(), minor_units }
+    }
+
+    fn jpy(minor_units: i64) -> Amount {
+        Amount { currency: by_code("JPY").unwrap(), minor_units }
+    }
+
+    #[test]
+    fn parses_symbol_prefixed_amount_with_grouping() {
+        let a = parse_display_line("$1,234.56", 1).unwrap();
+        assert_eq!(a, usd(123456));
+    }
+
+    #[test]
+    fn parses_negative_symbol_amount_with_no_minor_units() {
+        let a = parse_display_line("-¥500", 1).unwrap();
+        assert_eq!(a, jpy(-500));
+    }
+
+    #[test]
+    fn parses_trailing_code_amount() {
+        let a = parse_display_line("12.34 EUR", 1).unwrap();
+        assert_eq!(a.currency.code, "EUR");
+        assert_eq!(a.minor_units, 1234);
+    }
+
+    #[test]
+    fn parses_three_decimal_currency() {
+        let a = parse_display_line("1.234 BHD", 1).unwrap();
+        assert_eq!(a, bhd(1234));
+    }
+
+    #[test]
+    fn omitting_fraction_means_zero() {
+        let a = parse_display_line("$12", 1).unwrap();
+        assert_eq!(a, usd(1200));
+    }
+
+    #[test]
+    fn rejects_unknown_leading_character() {
+        let e = parse_display_line("\u{20B9}100", 1).unwrap_err();
+        assert_eq!(e.column, 1);
+        assert!(e.message.contains("expected a digit"));
+    }
+
+    #[test]
+    fn rejects_comma_with_no_leading_digit() {
+        let e = parse_display_line("$,123", 1).unwrap_err();
+        assert_eq!(e.column, 2);
+        assert!(e.message.contains("expected a digit"));
+    }
+
+    #[test]
+    fn rejects_trailing_thousands_separator() {
+        let e = parse_display_line("$1,234,", 1).unwrap_err();
+        assert_eq!(e.column, 7);
+        assert!(e.message.contains("trailing ','"));
+    }
+
+    #[test]
+    fn rejects_empty_digit_group() {
+        let e = parse_display_line("$1,,234.56", 1).unwrap_err();
+        assert_eq!(e.column, 4);
+        assert!(e.message.contains("empty digit group"));
+    }
+
+    #[test]
+    fn rejects_short_non_leading_group() {
+        let e = parse_display_line("$1,23.45", 1).unwrap_err();
+        assert_eq!(e.column, 4);
+        assert!(e.message.contains("expected exactly 3"));
+    }
+
+    #[test]
+    fn rejects_long_leading_group() {
+        let e = parse_display_line("$1234,567.89", 1).unwrap_err();
+        assert_eq!(e.column, 2);
+        assert!(e.message.contains("expected at most 3"));
+    }
+
+    #[test]
+    fn rejects_dangling_decimal_point() {
+        let e = parse_display_line("$12.", 1).unwrap_err();
+        assert_eq!(e.column, 4);
+        assert!(e.message.contains("after the decimal point"));
+    }
+
+    #[test]
+    fn rejects_wrong_fraction_digit_count() {
+        let e = parse_display_line("$12.5", 1).unwrap_err();
+        assert_eq!(e.column, 5);
+        assert!(e.message.contains("2 fractional digit(s)"));
+    }
+
+    #[test]
+    fn error_column_accounts_for_leading_whitespace() {
+        let e = parse_display_line("   $12.5", 1).unwrap_err();
+        assert_eq!(e.column, 8);
+    }
+
+    #[test]
+    fn rejects_decimal_point_on_zero_decimal_currency() {
+        let e = parse_display_line("\u{a5}1.5", 1).unwrap_err();
+        assert_eq!(e.column, 4);
+        assert!(e.message.contains("no minor units"));
+    }
+
+    #[test]
+    fn rejects_bare_number_with_no_symbol_or_code() {
+        let e = parse_display_line("1234", 1).unwrap_err();
+        assert_eq!(e.column, 5);
+        assert!(e.message.contains("no currency symbol"));
+    }
+
+    #[test]
+    fn rejects_unknown_trailing_code() {
+        let e = parse_display_line("12.34 ABC", 1).unwrap_err();
+        assert_eq!(e.column, 7);
+        assert!(e.message.contains("unknown currency code 'ABC'"));
+    }
+
+    #[test]
+    fn rejects_trailing_garbage_after_symbol_amount() {
+        let e = parse_display_line("$12.34xyz", 1).unwrap_err();
+        assert_eq!(e.column, 7);
+        assert!(e.message.contains("unexpected trailing text"));
+    }
+
+    #[test]
+    fn formats_and_reparses_round_trip() {
+        for a in [usd(123456), usd(-5), jpy(0), bhd(1234)] {
+            let text = format_display(&a);
+            let reparsed = parse_display_line(&text, 1).unwrap();
+            assert_eq!(a, reparsed, "round trip failed for {}", text);
+        }
+    }
+
+    #[test]
+    fn formats_small_amount_with_leading_zero_padding() {
+        assert_eq!(format_display(&usd(5)), "$0.05");
+    }
+
+    #[test]
+    fn formats_negative_amount_with_grouping() {
+        assert_eq!(format_display(&usd(-123456)), "-$1,234.56");
+    }
+
+    #[test]
+    fn formats_zero_minor_unit_currency() {
+        assert_eq!(format_display(&jpy(0)), "\u{a5}0");
+    }
+
+    #[test]
+    fn formats_currency_without_symbol_using_trailing_code() {
+        assert_eq!(format_display(&bhd(1234)), "1.234 BHD");
+    }
+}

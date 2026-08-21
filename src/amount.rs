@@ -101,3 +101,75 @@ pub fn parse_ledger_line(line: &str, line_no: usize) -> Result<Amount, ParseErro
 
     Ok(Amount { currency, minor_units })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_basic_amount() {
+        let a = parse_ledger_line("USD 123456", 1).unwrap();
+        assert_eq!(a.currency.code, "USD");
+        assert_eq!(a.minor_units, 123456);
+    }
+
+    #[test]
+    fn parses_negative_amount() {
+        let a = parse_ledger_line("JPY -500", 1).unwrap();
+        assert_eq!(a.currency.code, "JPY");
+        assert_eq!(a.minor_units, -500);
+    }
+
+    #[test]
+    fn code_lookup_is_case_insensitive() {
+        let a = parse_ledger_line("usd 100", 1).unwrap();
+        assert_eq!(a.currency.code, "USD");
+    }
+
+    #[test]
+    fn ignores_leading_and_trailing_whitespace() {
+        let a = parse_ledger_line("  USD 100  ", 1).unwrap();
+        assert_eq!(a.minor_units, 100);
+    }
+
+    #[test]
+    fn empty_line_reports_column_one() {
+        let e = parse_ledger_line("", 7).unwrap_err();
+        assert_eq!((e.line, e.column), (7, 1));
+        assert!(e.message.contains("empty line"));
+    }
+
+    #[test]
+    fn unknown_code_points_at_the_code() {
+        let e = parse_ledger_line("XYZ 100", 3).unwrap_err();
+        assert_eq!((e.line, e.column), (3, 1));
+        assert!(e.message.contains("XYZ"));
+    }
+
+    #[test]
+    fn unknown_code_column_accounts_for_leading_whitespace() {
+        let e = parse_ledger_line("  XYZ 100", 1).unwrap_err();
+        assert_eq!(e.column, 3);
+    }
+
+    #[test]
+    fn missing_amount_after_code() {
+        let e = parse_ledger_line("USD", 1).unwrap_err();
+        assert_eq!(e.column, 4);
+        assert!(e.message.contains("expected an integer amount"));
+    }
+
+    #[test]
+    fn invalid_integer_points_at_the_number() {
+        let e = parse_ledger_line("USD abc", 1).unwrap_err();
+        assert_eq!(e.column, 5);
+        assert!(e.message.contains("'abc'"));
+    }
+
+    #[test]
+    fn trailing_text_after_amount() {
+        let e = parse_ledger_line("USD 100 extra", 1).unwrap_err();
+        assert_eq!(e.column, 9);
+        assert!(e.message.contains("trailing text"));
+    }
+}

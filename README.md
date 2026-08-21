@@ -73,5 +73,6 @@ CHF, BHD) — see `src/amount.rs`.
 
 ## Status
 
-First pass. No test suite yet, and the currency table is intentionally
-short. See the roadmap for what's next.
+First pass. Unit tests cover the parser's edge cases and error column
+math (`cargo test`), but the currency table is intentionally short. See
+the roadmap for what's next.

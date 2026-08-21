@@ -47,3 +47,35 @@ impl fmt::Display for ParseError {
 }
 
 impl std::error::Error for ParseError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn render_points_a_caret_at_the_column() {
+        let e = ParseError::new(1, 5, "USD amounts use 2 fractional digit(s), but this amount has 1");
+        let rendered = e.render("$12.5\n");
+        let expected = "error: USD amounts use 2 fractional digit(s), but this amount has 1\n"
+            .to_string()
+            + " |\n"
+            + "1 | $12.5\n"
+            + " |     ^\n"
+            + " at line 1, column 5";
+        assert_eq!(rendered, expected);
+    }
+
+    #[test]
+    fn render_picks_the_right_line_out_of_several() {
+        let e = ParseError::new(2, 3, "boom");
+        let rendered = e.render("first\nsecond\nthird");
+        assert!(rendered.contains("2 | second"));
+        assert!(rendered.contains("  ^"));
+    }
+
+    #[test]
+    fn display_impl_is_line_column_message() {
+        let e = ParseError::new(4, 9, "bad");
+        assert_eq!(e.to_string(), "line 4, column 9: bad");
+    }
+}
