@@ -10,9 +10,11 @@ pub struct Currency {
     pub symbol: Option<char>,
 }
 
-// A starter set, not the full ISO 4217 list. BHD is included on purpose:
-// three fractional digits is the case that breaks converters written with
-// only USD/EUR-style currencies in mind.
+// Not the full ISO 4217 list yet, but wide enough to cover the currencies
+// most conversion files actually contain, plus every fractional-digit count
+// that appears in the standard (0, 2, and 3). Only the four currencies with
+// a widely recognized single-character symbol get one; everything else is
+// written with a trailing code (`12.34 CAD`), same as CHF and BHD below.
 pub const CURRENCIES: &[Currency] = &[
     Currency { code: "USD", minor_units: 2, symbol: Some('$') },
     Currency { code: "EUR", minor_units: 2, symbol: Some('€') },
@@ -20,6 +22,75 @@ pub const CURRENCIES: &[Currency] = &[
     Currency { code: "JPY", minor_units: 0, symbol: Some('¥') },
     Currency { code: "CHF", minor_units: 2, symbol: None },
     Currency { code: "BHD", minor_units: 3, symbol: None },
+    // Zero-decimal currencies (ISO 4217 defines no minor unit).
+    Currency { code: "BIF", minor_units: 0, symbol: None },
+    Currency { code: "CLP", minor_units: 0, symbol: None },
+    Currency { code: "DJF", minor_units: 0, symbol: None },
+    Currency { code: "GNF", minor_units: 0, symbol: None },
+    Currency { code: "ISK", minor_units: 0, symbol: None },
+    Currency { code: "KMF", minor_units: 0, symbol: None },
+    Currency { code: "KRW", minor_units: 0, symbol: None },
+    Currency { code: "PYG", minor_units: 0, symbol: None },
+    Currency { code: "RWF", minor_units: 0, symbol: None },
+    Currency { code: "UGX", minor_units: 0, symbol: None },
+    Currency { code: "VND", minor_units: 0, symbol: None },
+    Currency { code: "VUV", minor_units: 0, symbol: None },
+    Currency { code: "XAF", minor_units: 0, symbol: None },
+    Currency { code: "XOF", minor_units: 0, symbol: None },
+    Currency { code: "XPF", minor_units: 0, symbol: None },
+    // Three-decimal currencies, the same family BHD belongs to.
+    Currency { code: "IQD", minor_units: 3, symbol: None },
+    Currency { code: "JOD", minor_units: 3, symbol: None },
+    Currency { code: "KWD", minor_units: 3, symbol: None },
+    Currency { code: "LYD", minor_units: 3, symbol: None },
+    Currency { code: "OMR", minor_units: 3, symbol: None },
+    Currency { code: "TND", minor_units: 3, symbol: None },
+    // Two-decimal currencies (the common case).
+    Currency { code: "AED", minor_units: 2, symbol: None },
+    Currency { code: "ARS", minor_units: 2, symbol: None },
+    Currency { code: "AUD", minor_units: 2, symbol: None },
+    Currency { code: "BDT", minor_units: 2, symbol: None },
+    Currency { code: "BGN", minor_units: 2, symbol: None },
+    Currency { code: "BRL", minor_units: 2, symbol: None },
+    Currency { code: "CAD", minor_units: 2, symbol: None },
+    Currency { code: "CNY", minor_units: 2, symbol: None },
+    Currency { code: "COP", minor_units: 2, symbol: None },
+    Currency { code: "CZK", minor_units: 2, symbol: None },
+    Currency { code: "DKK", minor_units: 2, symbol: None },
+    Currency { code: "EGP", minor_units: 2, symbol: None },
+    Currency { code: "HKD", minor_units: 2, symbol: None },
+    Currency { code: "HUF", minor_units: 2, symbol: None },
+    Currency { code: "IDR", minor_units: 2, symbol: None },
+    Currency { code: "ILS", minor_units: 2, symbol: None },
+    Currency { code: "INR", minor_units: 2, symbol: None },
+    Currency { code: "KES", minor_units: 2, symbol: None },
+    Currency { code: "KZT", minor_units: 2, symbol: None },
+    Currency { code: "LKR", minor_units: 2, symbol: None },
+    Currency { code: "MAD", minor_units: 2, symbol: None },
+    Currency { code: "MXN", minor_units: 2, symbol: None },
+    Currency { code: "MYR", minor_units: 2, symbol: None },
+    Currency { code: "NGN", minor_units: 2, symbol: None },
+    Currency { code: "NOK", minor_units: 2, symbol: None },
+    Currency { code: "NPR", minor_units: 2, symbol: None },
+    Currency { code: "NZD", minor_units: 2, symbol: None },
+    Currency { code: "PEN", minor_units: 2, symbol: None },
+    Currency { code: "PHP", minor_units: 2, symbol: None },
+    Currency { code: "PKR", minor_units: 2, symbol: None },
+    Currency { code: "PLN", minor_units: 2, symbol: None },
+    Currency { code: "QAR", minor_units: 2, symbol: None },
+    Currency { code: "RON", minor_units: 2, symbol: None },
+    Currency { code: "RSD", minor_units: 2, symbol: None },
+    Currency { code: "RUB", minor_units: 2, symbol: None },
+    Currency { code: "SAR", minor_units: 2, symbol: None },
+    Currency { code: "SEK", minor_units: 2, symbol: None },
+    Currency { code: "SGD", minor_units: 2, symbol: None },
+    Currency { code: "THB", minor_units: 2, symbol: None },
+    Currency { code: "TRY", minor_units: 2, symbol: None },
+    Currency { code: "TWD", minor_units: 2, symbol: None },
+    Currency { code: "UAH", minor_units: 2, symbol: None },
+    Currency { code: "UYU", minor_units: 2, symbol: None },
+    Currency { code: "VES", minor_units: 2, symbol: None },
+    Currency { code: "ZAR", minor_units: 2, symbol: None },
 ];
 
 pub fn by_code(code: &str) -> Option<&'static Currency> {
@@ -171,5 +242,40 @@ mod tests {
         let e = parse_ledger_line("USD 100 extra", 1).unwrap_err();
         assert_eq!(e.column, 9);
         assert!(e.message.contains("trailing text"));
+    }
+
+    #[test]
+    fn currency_table_has_no_duplicate_codes() {
+        for (i, a) in CURRENCIES.iter().enumerate() {
+            for b in &CURRENCIES[i + 1..] {
+                assert_ne!(a.code, b.code, "duplicate currency code {}", a.code);
+            }
+        }
+    }
+
+    #[test]
+    fn currency_table_has_no_duplicate_symbols() {
+        let symbols: Vec<char> = CURRENCIES.iter().filter_map(|c| c.symbol).collect();
+        for (i, a) in symbols.iter().enumerate() {
+            assert!(
+                !symbols[i + 1..].contains(a),
+                "symbol '{}' is assigned to more than one currency",
+                a
+            );
+        }
+    }
+
+    #[test]
+    fn zero_decimal_currencies_are_correctly_classified() {
+        for code in ["JPY", "KRW", "VND", "CLP", "ISK"] {
+            assert_eq!(by_code(code).unwrap().minor_units, 0, "{} should have 0 minor units", code);
+        }
+    }
+
+    #[test]
+    fn three_decimal_currencies_are_correctly_classified() {
+        for code in ["BHD", "KWD", "OMR", "JOD", "TND", "IQD", "LYD"] {
+            assert_eq!(by_code(code).unwrap().minor_units, 3, "{} should have 3 minor units", code);
+        }
     }
 }

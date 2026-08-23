@@ -68,11 +68,13 @@ wrong number of digits for BHD" is.
 - Ledger format is `<CODE> <integer>`, where the integer is the exact
   number of minor units and carries the sign.
 
-Only a small starter set of currencies is built in (USD, EUR, GBP, JPY,
-CHF, BHD) — see `src/amount.rs`.
+Around sixty currencies are built in, covering all three fractional-digit
+counts ISO 4217 uses (0, 2, and 3) — see `src/amount.rs` for the full list.
+Only USD, EUR, GBP, and JPY get a symbol; everything else is written with
+a trailing code (`12.34 CAD`).
 
 ## Status
 
 First pass. Unit tests cover the parser's edge cases and error column
-math (`cargo test`), but the currency table is intentionally short. See
-the roadmap for what's next.
+math (`cargo test`). The currency table is bigger than a starter set now
+but still short of the full ISO 4217 list. See the roadmap for what's next.
