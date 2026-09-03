@@ -18,7 +18,14 @@ JPY has 0, BHD has 3). People, on the other hand, want to type and read
 cfbridge --to-ledger amounts.txt
 cfbridge --to-display ledger.txt
 cfbridge --to-ledger < amounts.txt
+cfbridge --to-display --locale=eu ledger.txt
 ```
+
+By default, display format uses `,` for thousands grouping and `.` for the
+decimal point (`1,234.56`). Pass `--locale=eu` to read and write the format
+common across continental Europe instead, where those two roles are swapped
+(`1.234,56`). Ledger format is unaffected either way — it has no separators
+to be ambiguous about.
 
 With `amounts.txt` containing:
 
@@ -77,4 +84,6 @@ a trailing code (`12.34 CAD`).
 
 First pass. Unit tests cover the parser's edge cases and error column
 math (`cargo test`). The currency table is bigger than a starter set now
-but still short of the full ISO 4217 list. See the roadmap for what's next.
+but still short of the full ISO 4217 list. `--locale` covers the two
+common separator conventions; round-trip validation and a totals/summary
+mode grouped by currency code are next.
