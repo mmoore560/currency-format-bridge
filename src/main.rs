@@ -12,6 +12,7 @@ use display::Locale;
 enum Mode {
     ToLedger,
     ToDisplay,
+    Validate,
 }
 
 fn main() -> ExitCode {
@@ -24,6 +25,7 @@ fn main() -> ExitCode {
         match arg.as_str() {
             "--to-ledger" => mode = Some(Mode::ToLedger),
             "--to-display" => mode = Some(Mode::ToDisplay),
+            "--validate" => mode = Some(Mode::Validate),
             other if other.starts_with("--locale=") => {
                 let name = &other["--locale=".len()..];
                 match Locale::parse(name) {
@@ -41,9 +43,10 @@ fn main() -> ExitCode {
     let mode = match mode {
         Some(m) => m,
         None => {
-            eprintln!("usage: cfbridge --to-ledger|--to-display [--locale=us|eu] [file]");
+            eprintln!("usage: cfbridge --to-ledger|--to-display|--validate [--locale=us|eu] [file]");
             eprintln!("reads amounts, one per line, from the file, or from stdin if no file is given");
             eprintln!("--locale controls the display format's separators: us is '1,234.56', eu is '1.234,56' (default: us)");
+            eprintln!("--validate reads display-format lines and reports any that are not in canonical form");
             return ExitCode::from(2);
         }
     };
@@ -72,11 +75,27 @@ fn main() -> ExitCode {
         if line.trim().is_empty() {
             continue;
         }
+        if let Mode::Validate = mode {
+            match display::round_trip(line, line_no, locale) {
+                Ok(canonical) if canonical == line.trim() => println!("{}: ok", line_no),
+                Ok(canonical) => {
+                    println!("{}: not canonical, canonical form is '{}'", line_no, canonical);
+                    had_error = true;
+                }
+                Err(e) => {
+                    eprintln!("{}", e.render(&source));
+                    had_error = true;
+                }
+            }
+            continue;
+        }
+
         let result = match mode {
             Mode::ToLedger => display::parse_display_line(line, line_no, locale).map(|a| a.to_ledger()),
             Mode::ToDisplay => {
                 amount::parse_ledger_line(line, line_no).map(|a| display::format_display(&a, locale))
             }
+            Mode::Validate => unreachable!("handled above"),
         };
         match result {
             Ok(out) => println!("{}", out),

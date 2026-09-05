@@ -19,6 +19,7 @@ cfbridge --to-ledger amounts.txt
 cfbridge --to-display ledger.txt
 cfbridge --to-ledger < amounts.txt
 cfbridge --to-display --locale=eu ledger.txt
+cfbridge --validate amounts.txt
 ```
 
 By default, display format uses `,` for thousands grouping and `.` for the
@@ -62,6 +63,25 @@ from somewhere else (an export, a pasted email, a spreadsheet) — "line 214
 is wrong" is not useful, "line 214, column 9, the fractional part has the
 wrong number of digits for BHD" is.
 
+## Validation mode
+
+`--validate` reads display-format lines and pushes each one through
+`display -> ledger -> display`. Since the ledger format is an exact integer,
+that round trip is lossless — so if the result doesn't match the original
+line, the line was syntactically valid but not in canonical form (missing
+thousands separators, an omitted fractional part, and the like):
+
+```
+$ printf '$1234.56\n$12\n$1,234.56\n' | cfbridge --validate
+1: not canonical, canonical form is '$1,234.56'
+2: not canonical, canonical form is '$12.00'
+3: ok
+```
+
+Lines that fail to parse at all are reported the same way `--to-ledger`
+does, with the line/column caret. `--validate` exits non-zero if any line
+is a parse error or not already canonical.
+
 ## Format details
 
 - Display format accepts an optional leading `-`, then either a currency
@@ -85,5 +105,5 @@ a trailing code (`12.34 CAD`).
 First pass. Unit tests cover the parser's edge cases and error column
 math (`cargo test`). The currency table is bigger than a starter set now
 but still short of the full ISO 4217 list. `--locale` covers the two
-common separator conventions; round-trip validation and a totals/summary
-mode grouped by currency code are next.
+common separator conventions and `--validate` covers round-trip checking;
+a totals/summary mode grouped by currency code is next.

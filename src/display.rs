@@ -1,4 +1,4 @@
-use crate::amount::{by_code, by_symbol, Amount};
+use crate::amount::{by_code, by_symbol, parse_ledger_line, Amount};
 use crate::error::ParseError;
 
 /// Which characters separate thousands groups and the fractional part.
@@ -295,6 +295,20 @@ pub fn format_display(amount: &Amount, locale: Locale) -> String {
     out
 }
 
+/// Push a display-format line through the ledger format and back, returning
+/// the canonical display text. `Amount` is lossless (currency plus an exact
+/// integer), so the only way the result can differ from the input is that
+/// the input was valid but not in canonical form: no thousands separators,
+/// unnecessary leading zeros, and so on. Comparing this output against the
+/// original line is what `--validate` uses to flag that case.
+pub fn round_trip(line: &str, line_no: usize, locale: Locale) -> Result<String, ParseError> {
+    let amount = parse_display_line(line, line_no, locale)?;
+    let ledger = amount.to_ledger();
+    let reparsed = parse_ledger_line(&ledger, line_no)
+        .expect("ledger text produced by Amount::to_ledger always parses back");
+    Ok(format_display(&reparsed, locale))
+}
+
 fn group_thousands(digits: &str, separator: char) -> String {
     let bytes = digits.as_bytes();
     let len = bytes.len();
@@ -497,5 +511,36 @@ mod tests {
         assert_eq!(Locale::parse("us"), Some(Locale::Us));
         assert_eq!(Locale::parse("eu"), Some(Locale::Eu));
         assert_eq!(Locale::parse("fr"), None);
+    }
+
+    #[test]
+    fn round_trip_matches_already_canonical_input() {
+        let canonical = round_trip("$1,234.56", 1, Locale::Us).unwrap();
+        assert_eq!(canonical, "$1,234.56");
+    }
+
+    #[test]
+    fn round_trip_flags_missing_thousands_separators() {
+        let canonical = round_trip("$1234567.89", 1, Locale::Us).unwrap();
+        assert_eq!(canonical, "$1,234,567.89");
+        assert_ne!(canonical, "$1234567.89");
+    }
+
+    #[test]
+    fn round_trip_flags_omitted_fraction() {
+        let canonical = round_trip("$12", 1, Locale::Us).unwrap();
+        assert_eq!(canonical, "$12.00");
+    }
+
+    #[test]
+    fn round_trip_is_stable_under_eu_locale() {
+        let canonical = round_trip("$1.234,56", 1, Locale::Eu).unwrap();
+        assert_eq!(canonical, "$1.234,56");
+    }
+
+    #[test]
+    fn round_trip_propagates_parse_errors() {
+        let e = round_trip("$12.5", 1, Locale::Us).unwrap_err();
+        assert!(e.message.contains("2 fractional digit(s)"));
     }
 }
