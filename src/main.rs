@@ -6,13 +6,16 @@ use std::process::ExitCode;
 mod amount;
 mod display;
 mod error;
+mod totals;
 
 use display::Locale;
+use totals::Totals;
 
 enum Mode {
     ToLedger,
     ToDisplay,
     Validate,
+    Totals,
 }
 
 fn main() -> ExitCode {
@@ -26,6 +29,7 @@ fn main() -> ExitCode {
             "--to-ledger" => mode = Some(Mode::ToLedger),
             "--to-display" => mode = Some(Mode::ToDisplay),
             "--validate" => mode = Some(Mode::Validate),
+            "--totals" => mode = Some(Mode::Totals),
             other if other.starts_with("--locale=") => {
                 let name = &other["--locale=".len()..];
                 match Locale::parse(name) {
@@ -43,10 +47,11 @@ fn main() -> ExitCode {
     let mode = match mode {
         Some(m) => m,
         None => {
-            eprintln!("usage: cfbridge --to-ledger|--to-display|--validate [--locale=us|eu] [file]");
+            eprintln!("usage: cfbridge --to-ledger|--to-display|--validate|--totals [--locale=us|eu] [file]");
             eprintln!("reads amounts, one per line, from the file, or from stdin if no file is given");
             eprintln!("--locale controls the display format's separators: us is '1,234.56', eu is '1.234,56' (default: us)");
             eprintln!("--validate reads display-format lines and reports any that are not in canonical form");
+            eprintln!("--totals reads display-format lines and prints one summed line per currency code");
             return ExitCode::from(2);
         }
     };
@@ -70,6 +75,7 @@ fn main() -> ExitCode {
     };
 
     let mut had_error = false;
+    let mut totals = Totals::new();
     for (idx, line) in source.lines().enumerate() {
         let line_no = idx + 1;
         if line.trim().is_empty() {
@@ -89,13 +95,33 @@ fn main() -> ExitCode {
             }
             continue;
         }
+        if let Mode::Totals = mode {
+            match display::parse_display_line(line, line_no, locale) {
+                Ok(amount) => {
+                    if totals.add(&amount).is_err() {
+                        let err = error::ParseError::new(
+                            line_no,
+                            1,
+                            format!("running total for {} overflowed a 64-bit integer", amount.currency.code),
+                        );
+                        eprintln!("{}", err.render(&source));
+                        had_error = true;
+                    }
+                }
+                Err(e) => {
+                    eprintln!("{}", e.render(&source));
+                    had_error = true;
+                }
+            }
+            continue;
+        }
 
         let result = match mode {
             Mode::ToLedger => display::parse_display_line(line, line_no, locale).map(|a| a.to_ledger()),
             Mode::ToDisplay => {
                 amount::parse_ledger_line(line, line_no).map(|a| display::format_display(&a, locale))
             }
-            Mode::Validate => unreachable!("handled above"),
+            Mode::Validate | Mode::Totals => unreachable!("handled above"),
         };
         match result {
             Ok(out) => println!("{}", out),
@@ -103,6 +129,13 @@ fn main() -> ExitCode {
                 eprintln!("{}", e.render(&source));
                 had_error = true;
             }
+        }
+    }
+
+    if let Mode::Totals = mode {
+        for (code, minor_units) in totals.iter() {
+            let amount = amount::Amount { currency: amount::by_code(code).unwrap(), minor_units };
+            println!("{}", display::format_display(&amount, locale));
         }
     }
 
