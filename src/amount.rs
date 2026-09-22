@@ -10,10 +10,11 @@ pub struct Currency {
     pub symbol: Option<char>,
 }
 
-// Not the full ISO 4217 list yet, but wide enough to cover the currencies
-// most conversion files actually contain, plus every fractional-digit count
-// that appears in the standard (0, 2, and 3). Only the four currencies with
-// a widely recognized single-character symbol get one; everything else is
+// Every currency in active circulation per ISO 4217, covering all three
+// fractional-digit counts the standard uses (0, 2, and 3). Fund codes and
+// precious-metal codes (BOV, XAU, XDR, ...) are left out since they never
+// show up in a display-format amount. Only the four currencies with a
+// widely recognized single-character symbol get one; everything else is
 // written with a trailing code (`12.34 CAD`), same as CHF and BHD below.
 pub const CURRENCIES: &[Currency] = &[
     Currency { code: "USD", minor_units: 2, symbol: Some('$') },
@@ -91,6 +92,93 @@ pub const CURRENCIES: &[Currency] = &[
     Currency { code: "UYU", minor_units: 2, symbol: None },
     Currency { code: "VES", minor_units: 2, symbol: None },
     Currency { code: "ZAR", minor_units: 2, symbol: None },
+    // The rest of the actively circulating ISO 4217 currencies, all
+    // two-decimal. Fund codes (BOV, CHE, USN, ...) and metal codes (XAU,
+    // XAG, XDR, ...) are left out since nobody writes a grocery receipt
+    // in them.
+    Currency { code: "AFN", minor_units: 2, symbol: None },
+    Currency { code: "ALL", minor_units: 2, symbol: None },
+    Currency { code: "AMD", minor_units: 2, symbol: None },
+    Currency { code: "ANG", minor_units: 2, symbol: None },
+    Currency { code: "AOA", minor_units: 2, symbol: None },
+    Currency { code: "AWG", minor_units: 2, symbol: None },
+    Currency { code: "AZN", minor_units: 2, symbol: None },
+    Currency { code: "BAM", minor_units: 2, symbol: None },
+    Currency { code: "BBD", minor_units: 2, symbol: None },
+    Currency { code: "BMD", minor_units: 2, symbol: None },
+    Currency { code: "BND", minor_units: 2, symbol: None },
+    Currency { code: "BOB", minor_units: 2, symbol: None },
+    Currency { code: "BSD", minor_units: 2, symbol: None },
+    Currency { code: "BTN", minor_units: 2, symbol: None },
+    Currency { code: "BWP", minor_units: 2, symbol: None },
+    Currency { code: "BYN", minor_units: 2, symbol: None },
+    Currency { code: "BZD", minor_units: 2, symbol: None },
+    Currency { code: "CDF", minor_units: 2, symbol: None },
+    Currency { code: "CRC", minor_units: 2, symbol: None },
+    Currency { code: "CUP", minor_units: 2, symbol: None },
+    Currency { code: "CVE", minor_units: 2, symbol: None },
+    Currency { code: "DOP", minor_units: 2, symbol: None },
+    Currency { code: "DZD", minor_units: 2, symbol: None },
+    Currency { code: "ERN", minor_units: 2, symbol: None },
+    Currency { code: "ETB", minor_units: 2, symbol: None },
+    Currency { code: "FJD", minor_units: 2, symbol: None },
+    Currency { code: "FKP", minor_units: 2, symbol: None },
+    Currency { code: "GEL", minor_units: 2, symbol: None },
+    Currency { code: "GHS", minor_units: 2, symbol: None },
+    Currency { code: "GIP", minor_units: 2, symbol: None },
+    Currency { code: "GMD", minor_units: 2, symbol: None },
+    Currency { code: "GTQ", minor_units: 2, symbol: None },
+    Currency { code: "GYD", minor_units: 2, symbol: None },
+    Currency { code: "HNL", minor_units: 2, symbol: None },
+    Currency { code: "HTG", minor_units: 2, symbol: None },
+    Currency { code: "IRR", minor_units: 2, symbol: None },
+    Currency { code: "JMD", minor_units: 2, symbol: None },
+    Currency { code: "KGS", minor_units: 2, symbol: None },
+    Currency { code: "KHR", minor_units: 2, symbol: None },
+    Currency { code: "KPW", minor_units: 2, symbol: None },
+    Currency { code: "KYD", minor_units: 2, symbol: None },
+    Currency { code: "LAK", minor_units: 2, symbol: None },
+    Currency { code: "LBP", minor_units: 2, symbol: None },
+    Currency { code: "LRD", minor_units: 2, symbol: None },
+    Currency { code: "LSL", minor_units: 2, symbol: None },
+    Currency { code: "MDL", minor_units: 2, symbol: None },
+    Currency { code: "MGA", minor_units: 2, symbol: None },
+    Currency { code: "MKD", minor_units: 2, symbol: None },
+    Currency { code: "MMK", minor_units: 2, symbol: None },
+    Currency { code: "MNT", minor_units: 2, symbol: None },
+    Currency { code: "MOP", minor_units: 2, symbol: None },
+    Currency { code: "MRU", minor_units: 2, symbol: None },
+    Currency { code: "MUR", minor_units: 2, symbol: None },
+    Currency { code: "MVR", minor_units: 2, symbol: None },
+    Currency { code: "MWK", minor_units: 2, symbol: None },
+    Currency { code: "MZN", minor_units: 2, symbol: None },
+    Currency { code: "NAD", minor_units: 2, symbol: None },
+    Currency { code: "NIO", minor_units: 2, symbol: None },
+    Currency { code: "PAB", minor_units: 2, symbol: None },
+    Currency { code: "PGK", minor_units: 2, symbol: None },
+    Currency { code: "SBD", minor_units: 2, symbol: None },
+    Currency { code: "SCR", minor_units: 2, symbol: None },
+    Currency { code: "SDG", minor_units: 2, symbol: None },
+    Currency { code: "SHP", minor_units: 2, symbol: None },
+    Currency { code: "SLE", minor_units: 2, symbol: None },
+    Currency { code: "SOS", minor_units: 2, symbol: None },
+    Currency { code: "SRD", minor_units: 2, symbol: None },
+    Currency { code: "SSP", minor_units: 2, symbol: None },
+    Currency { code: "STN", minor_units: 2, symbol: None },
+    Currency { code: "SVC", minor_units: 2, symbol: None },
+    Currency { code: "SYP", minor_units: 2, symbol: None },
+    Currency { code: "SZL", minor_units: 2, symbol: None },
+    Currency { code: "TJS", minor_units: 2, symbol: None },
+    Currency { code: "TMT", minor_units: 2, symbol: None },
+    Currency { code: "TOP", minor_units: 2, symbol: None },
+    Currency { code: "TTD", minor_units: 2, symbol: None },
+    Currency { code: "TZS", minor_units: 2, symbol: None },
+    Currency { code: "UZS", minor_units: 2, symbol: None },
+    Currency { code: "WST", minor_units: 2, symbol: None },
+    Currency { code: "XCD", minor_units: 2, symbol: None },
+    Currency { code: "YER", minor_units: 2, symbol: None },
+    Currency { code: "ZMW", minor_units: 2, symbol: None },
+    Currency { code: "ZWG", minor_units: 2, symbol: None },
 ];
 
 pub fn by_code(code: &str) -> Option<&'static Currency> {
@@ -276,6 +364,14 @@ mod tests {
     fn three_decimal_currencies_are_correctly_classified() {
         for code in ["BHD", "KWD", "OMR", "JOD", "TND", "IQD", "LYD"] {
             assert_eq!(by_code(code).unwrap().minor_units, 3, "{} should have 3 minor units", code);
+        }
+    }
+
+    #[test]
+    fn recently_added_currencies_are_looked_up_case_insensitively() {
+        for code in ["AFN", "XCD", "ZWG", "MRU", "STN", "SLE"] {
+            assert_eq!(by_code(code).unwrap().code, code);
+            assert_eq!(by_code(&code.to_lowercase()).unwrap().code, code);
         }
     }
 }

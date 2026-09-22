@@ -112,15 +112,17 @@ parse or a running total overflowed a 64-bit integer.
 - Ledger format is `<CODE> <integer>`, where the integer is the exact
   number of minor units and carries the sign.
 
-Around sixty currencies are built in, covering all three fractional-digit
-counts ISO 4217 uses (0, 2, and 3) — see `src/amount.rs` for the full list.
-Only USD, EUR, GBP, and JPY get a symbol; everything else is written with
-a trailing code (`12.34 CAD`).
+The currency table now covers essentially every ISO 4217 code in active
+circulation, across all three fractional-digit counts the standard uses
+(0, 2, and 3) — see `src/amount.rs` for the full list. Fund codes and
+precious-metal codes (BOV, XAU, XDR, and the like) are left out, since
+nobody writes an amount in one of those. Only USD, EUR, GBP, and JPY get
+a symbol; everything else is written with a trailing code (`12.34 CAD`).
 
 ## Status
 
 First pass. Unit tests cover the parser's edge cases and error column
-math (`cargo test`). The currency table is bigger than a starter set now
-but still short of the full ISO 4217 list. `--locale` covers the two
-common separator conventions, `--validate` covers round-trip checking, and
-`--totals` covers summing by currency code.
+math (`cargo test`). `--locale` covers the two common separator
+conventions, `--validate` covers round-trip checking, and `--totals`
+covers summing by currency code, though only for display-format input —
+summing a ledger-format file isn't wired up yet.
