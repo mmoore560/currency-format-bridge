@@ -21,6 +21,7 @@ cfbridge --to-ledger < amounts.txt
 cfbridge --to-display --locale=eu ledger.txt
 cfbridge --validate amounts.txt
 cfbridge --totals amounts.txt
+cfbridge --totals --input=ledger ledger.txt
 ```
 
 By default, display format uses `,` for thousands grouping and `.` for the
@@ -85,9 +86,9 @@ is a parse error or not already canonical.
 
 ## Totals mode
 
-`--totals` reads display-format lines and prints one summed line per
-currency code, sorted by code, formatted the same way `--to-display` would
-format any other amount (so `--locale` applies here too):
+`--totals` prints one summed line per currency code, sorted by code,
+formatted the same way `--to-display` would format any other amount (so
+`--locale` applies here too). By default it reads display-format lines:
 
 ```
 $ printf '$10.00\n$5.50\n-¥100\n' | cfbridge --totals
@@ -95,9 +96,19 @@ $ printf '$10.00\n$5.50\n-¥100\n' | cfbridge --totals
 $15.50
 ```
 
-Lines that fail to parse are reported with the usual line/column caret and
-excluded from the totals; `--totals` exits non-zero if any line failed to
-parse or a running total overflowed a 64-bit integer.
+Pass `--input=ledger` to sum a ledger-format file instead:
+
+```
+$ printf 'USD 1000\nUSD 550\nJPY -100\n' | cfbridge --totals --input=ledger
+-¥100
+$15.50
+```
+
+`--input` only has an effect alongside `--totals`; every other mode's input
+format is fixed by the mode itself. Lines that fail to parse are reported
+with the usual line/column caret and excluded from the totals; `--totals`
+exits non-zero if any line failed to parse or a running total overflowed a
+64-bit integer.
 
 ## Format details
 
@@ -124,5 +135,5 @@ a symbol; everything else is written with a trailing code (`12.34 CAD`).
 First pass. Unit tests cover the parser's edge cases and error column
 math (`cargo test`). `--locale` covers the two common separator
 conventions, `--validate` covers round-trip checking, and `--totals`
-covers summing by currency code, though only for display-format input —
-summing a ledger-format file isn't wired up yet.
+covers summing by currency code for both display- and ledger-format
+input.

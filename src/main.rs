@@ -18,11 +18,37 @@ enum Mode {
     Totals,
 }
 
+/// Which format `--totals` reads its input lines as. Every other mode's
+/// input format is implied by the mode itself (`--to-ledger` reads display,
+/// `--to-display` reads ledger), but totals can sensibly sum either one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum InputFormat {
+    Display,
+    Ledger,
+}
+
+impl InputFormat {
+    fn parse(name: &str) -> Option<InputFormat> {
+        match name {
+            "display" => Some(InputFormat::Display),
+            "ledger" => Some(InputFormat::Ledger),
+            _ => None,
+        }
+    }
+}
+
+impl Default for InputFormat {
+    fn default() -> Self {
+        InputFormat::Display
+    }
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().collect();
     let mut mode: Option<Mode> = None;
     let mut path: Option<String> = None;
     let mut locale = Locale::default();
+    let mut input_format = InputFormat::default();
 
     for arg in &args[1..] {
         match arg.as_str() {
@@ -40,6 +66,16 @@ fn main() -> ExitCode {
                     }
                 }
             }
+            other if other.starts_with("--input=") => {
+                let name = &other["--input=".len()..];
+                match InputFormat::parse(name) {
+                    Some(f) => input_format = f,
+                    None => {
+                        eprintln!("cfbridge: unknown input format '{}', expected 'display' or 'ledger'", name);
+                        return ExitCode::from(2);
+                    }
+                }
+            }
             other => path = Some(other.to_string()),
         }
     }
@@ -47,14 +83,22 @@ fn main() -> ExitCode {
     let mode = match mode {
         Some(m) => m,
         None => {
-            eprintln!("usage: cfbridge --to-ledger|--to-display|--validate|--totals [--locale=us|eu] [file]");
+            eprintln!(
+                "usage: cfbridge --to-ledger|--to-display|--validate|--totals [--locale=us|eu] [--input=display|ledger] [file]"
+            );
             eprintln!("reads amounts, one per line, from the file, or from stdin if no file is given");
             eprintln!("--locale controls the display format's separators: us is '1,234.56', eu is '1.234,56' (default: us)");
             eprintln!("--validate reads display-format lines and reports any that are not in canonical form");
-            eprintln!("--totals reads display-format lines and prints one summed line per currency code");
+            eprintln!("--totals prints one summed line per currency code");
+            eprintln!("--input selects the format --totals reads, display or ledger (default: display)");
             return ExitCode::from(2);
         }
     };
+
+    if input_format == InputFormat::Ledger && !matches!(mode, Mode::Totals) {
+        eprintln!("cfbridge: --input=ledger only applies to --totals");
+        return ExitCode::from(2);
+    }
 
     let source = match &path {
         Some(p) => match fs::read_to_string(p) {
@@ -96,7 +140,11 @@ fn main() -> ExitCode {
             continue;
         }
         if let Mode::Totals = mode {
-            match display::parse_display_line(line, line_no, locale) {
+            let parsed = match input_format {
+                InputFormat::Display => display::parse_display_line(line, line_no, locale),
+                InputFormat::Ledger => amount::parse_ledger_line(line, line_no),
+            };
+            match parsed {
                 Ok(amount) => {
                     if totals.add(&amount).is_err() {
                         let err = error::ParseError::new(
